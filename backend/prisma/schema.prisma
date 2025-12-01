@@ -7,26 +7,107 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Contact {
-  id         String    @id @default(uuid())
-  phone      String    @unique
-  name       String?
-  profilePic String?   @map("profile_pic")
-  createdAt  DateTime  @default(now()) @map("created_at")
-  messages   Message[]
+model Client {
+  client_id        String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  instagram        String?
+  reservations_qtd Int?           @default(0)
+  checkin_qtd      Int?           @default(0)
+  email            String?
+  phone            String
+  name             String
+  observations     Int?
+  status           String?        @default("bot")
+  createdAt        DateTime?      @default(now()) @map("created_at") @db.Timestamp(6)
+  is_active        Boolean?       @default(true)
+  notific          Int            @default(0)
+  reservations     reservations[]
 
-  @@map("contacts")
+  @@map("clients")
 }
 
 model Message {
-  id        String   @id @default(uuid())
-  contactId String   @map("contact_id")
-  direction String   // "incoming" ou "outgoing"
-  content   String
-  createdAt DateTime @default(now()) @map("created_at")
-  contact   Contact  @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  id           Int     @id @default(autoincrement())
+  message_id   String? @db.VarChar(255)
+  sender_id    String? @db.VarChar(255)
+  message_text String?
+  timestamp    String? @default(dbgenerated("CURRENT_TIMESTAMP"))
 
-  @@index([contactId])
-  @@index([createdAt(sort: Desc)])
   @@map("messages")
+}
+
+model messages_staff {
+  message_id      String  @id
+  sender_id       String
+  message_text    String
+  timestamp       String
+  recipient_phone String?
+}
+
+model n8n_chat_histories {
+  id         Int    @id @default(autoincrement())
+  session_id String @db.VarChar(255)
+  message    Json
+}
+
+model reservations {
+  reservations_id  String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  reservation_date String?
+  create_date      String?
+  total_guest      Int?
+  status           String?
+  hour             String?
+  table_number     String?
+  client_client_id String          @db.Uuid
+  unidade_unit_id  String          @db.Uuid
+  observations     String?
+  phone            String?         @default(dbgenerated("0"))
+  is_wpp           Boolean?
+  updated_at       DateTime?       @db.Timestamp(6)
+  channel          valid_channels?
+  espera           Boolean?
+  clients          Client          @relation(fields: [client_client_id], references: [client_id], onDelete: SetNull)
+
+  @@index([client_client_id])
+  @@index([unidade_unit_id])
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model thread_mgmt {
+  client_id String?
+  thread_id String?
+
+  @@ignore
+}
+
+model unities {
+  unit_id      String   @id @db.Uuid
+  cep          String?
+  public_place String?
+  complement   String?
+  unit         String?
+  neighborhood String?
+  locality     String?
+  uf           String?
+  region       String?
+  cnpj         String?
+  autoreverse  Boolean? @default(true)
+}
+
+model users {
+  userid          String  @id @db.Uuid
+  nome            String
+  cpf             String?
+  phone           String?
+  role            String?
+  password        String
+  unidade_unit_id String? @db.Uuid
+  email           String  @unique
+
+  @@index([unidade_unit_id])
+}
+
+enum valid_channels {
+  wpp
+  insta
+  restaurant
 }

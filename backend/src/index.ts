@@ -1,112 +1,106 @@
+// ============================================
+// 🚀 APP DE ATENDIMENTO - BACKEND
+// ============================================
+//
+// Estrutura do projeto:
+//
+// src/
+// ├── index.ts              ← Arquivo principal (você está aqui)
+// ├── config/
+// │   ├── database.ts       ← Conexão com banco (Prisma)
+// │   └── socket.ts         ← Configuração Socket.IO
+// ├── controllers/
+// │   ├── clientController.ts    ← Lógica de clientes
+// │   ├── messageController.ts   ← Lógica de mensagens
+// │   └── webhookController.ts   ← Lógica do webhook
+// ├── routes/
+// │   ├── index.ts          ← Índice de rotas
+// │   ├── clientRoutes.ts   ← Rotas de clientes
+// │   ├── messageRoutes.ts  ← Rotas de mensagens
+// │   └── webhookRoutes.ts  ← Rotas do webhook
+// └── services/
+//     └── whatsappService.ts ← Integração com UAZAPI
+//
+// ============================================
+
 import express from 'express';
 import cors from 'cors';
-import { PrismaClient } from '@prisma/client';
+import { createServer } from 'http';
 import dotenv from 'dotenv';
 
+// Configurações
+import { initSocket } from './config/socket';
+
+// Rotas
+import routes from './routes';
+
+// Carregar variáveis de ambiente
 dotenv.config();
 
+// ============================================
+// ⚙️ INICIALIZAÇÃO
+// ============================================
+
 const app = express();
-const prisma = new PrismaClient();
+const httpServer = createServer(app);
 const PORT = process.env.PORT || 3000;
+
+// Inicializar Socket.IO
+initSocket(httpServer);
+
+// ============================================
+// 🔧 MIDDLEWARES
+// ============================================
 
 app.use(cors());
 app.use(express.json());
 
-// GET /contacts - Lista todos os contatos com última mensagem
-app.get('/contacts', async (req, res) => {
-  try {
-    const contacts = await prisma.contact.findMany({
-      include: {
-        messages: {
-          orderBy: { createdAt: 'desc' },
-          take: 1
-        }
-      },
-      orderBy: { createdAt: 'desc' }
-    });
+// ============================================
+// 📋 ROTAS
+// ============================================
 
-    const result = contacts.map(contact => ({
-      id: contact.id,
-      phone: contact.phone,
-      name: contact.name,
-      profilePic: contact.profilePic,
-      lastMessage: contact.messages[0]?.content || null,
-      lastMessageAt: contact.messages[0]?.createdAt || contact.createdAt
-    }));
-
-    res.json(result);
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Erro ao buscar contatos' });
-  }
-});
-
-// GET /contacts/:id/messages - Busca mensagens de um contato
-app.get('/contacts/:id/messages', async (req, res) => {
-  try {
-    const { id } = req.params;
-    
-    const messages = await prisma.message.findMany({
-      where: { contactId: id },
-      orderBy: { createdAt: 'asc' }
-    });
-
-    res.json(messages);
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Erro ao buscar mensagens' });
-  }
-});
-
-// POST /messages - Envia uma mensagem (chama n8n e salva no banco)
-app.post('/messages', async (req, res) => {
-  try {
-    const { contactId, content } = req.body;
-
-    // Buscar o contato para pegar o telefone
-    const contact = await prisma.contact.findUnique({
-      where: { id: contactId }
-    });
-
-    if (!contact) {
-      return res.status(404).json({ error: 'Contato não encontrado' });
-    }
-
-    // Chamar o n8n para enviar a mensagem via WhatsApp
-    const n8nUrl = process.env.N8N_SEND_MESSAGE_URL;
-    if (n8nUrl) {
-      await fetch(n8nUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          phone: contact.phone,
-          message: content
-        })
-      });
-    }
-
-    // Salvar a mensagem no banco
-    const message = await prisma.message.create({
-      data: {
-        contactId,
-        content,
-        direction: 'outgoing'
-      }
-    });
-
-    res.json(message);
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Erro ao enviar mensagem' });
-  }
-});
+// Registrar todas as rotas
+app.use(routes);
 
 // Health check
 app.get('/health', (req, res) => {
-  res.json({ status: 'ok' });
+  res.json({ 
+    status: 'ok', 
+    message: 'Servidor funcionando!',
+    timestamp: new Date().toISOString()
+  });
 });
 
-app.listen(PORT, () => {
-  console.log(`🚀 API rodando em http://localhost:${PORT}`);
-});
+// ============================================
+// 🚀 INICIAR SERVIDOR
+// ============================================
 
+httpServer.listen(PORT, () => {
+  console.log('');
+  console.log('============================================');
+  console.log('🚀 SERVIDOR INICIADO!');
+  console.log('============================================');
+  console.log(`📍 URL: http://localhost:${PORT}`);
+  console.log(`🔌 Socket.IO: Ativo`);
+  console.log('');
+  console.log('📋 Rotas disponíveis:');
+  console.log('');
+  console.log('   👥 CLIENTES:');
+  console.log('   GET  /clients              - Lista todos');
+  console.log('   GET  /clients/:id          - Busca por ID');
+  console.log('   GET  /clients/telefone/:t  - Busca por telefone');
+  console.log('');
+  console.log('   💬 MENSAGENS:');
+  console.log('   GET  /messages             - Lista todas');
+  console.log('   GET  /messages/:telefone   - Busca por telefone');
+  console.log('   POST /messages/send        - Envia para WhatsApp');
+  console.log('');
+  console.log('   📥 WEBHOOK:');
+  console.log('   POST /webhook              - Recebe do WhatsApp');
+  console.log('');
+  console.log('   ❤️ HEALTH:');
+  console.log('   GET  /health               - Status do servidor');
+  console.log('');
+  console.log('============================================');
+  console.log('');
+});
