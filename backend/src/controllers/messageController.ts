@@ -26,8 +26,18 @@ export async function buscarMensagensPorTelefone(req: Request, res: Response) {
   try {
     const { telefone } = req.params;
     
+    // Normaliza o telefone removendo caracteres não numéricos
+    const telefoneNormalizado = telefone.replace(/\D/g, '');
+    
+    // Busca mensagens que contenham o telefone (flexível)
     const mensagens = await prisma.message.findMany({
-      where: { sender_id: telefone },
+      where: {
+        OR: [
+          { sender_id: telefone },
+          { sender_id: telefoneNormalizado },
+          { sender_id: { contains: telefoneNormalizado } },
+        ]
+      },
       orderBy: { id: 'asc' }
     });
 

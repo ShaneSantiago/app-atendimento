@@ -125,3 +125,4 @@ Configure estas variáveis:
 - `SUPABASE_KEY`: API Key do Supabase
 
 
+

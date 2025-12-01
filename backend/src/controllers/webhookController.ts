@@ -35,7 +35,34 @@ export async function receberWebhook(req: Request, res: Response) {
     console.log('👤 Nome:', nome);
     console.log('💬 Mensagem:', texto);
 
-    // 1. Salvar no banco de dados
+    // 1. Criar ou atualizar cliente
+    let cliente = await prisma.client.findFirst({
+      where: { phone: telefone }
+    });
+
+    if (!cliente) {
+      console.log('👤 Criando novo cliente...');
+      cliente = await prisma.client.create({
+        data: {
+          phone: telefone,
+          name: nome || telefone,
+          status: 'bot',
+          notific: 1
+        }
+      });
+      console.log('✅ Cliente criado:', cliente.client_id);
+    } else {
+      // Incrementar contador de notificações
+      await prisma.client.update({
+        where: { client_id: cliente.client_id },
+        data: { 
+          notific: { increment: 1 },
+          name: nome || cliente.name // Atualiza nome se vier
+        }
+      });
+    }
+
+    // 2. Salvar mensagem no banco de dados
     const mensagemSalva = await prisma.message.create({
       data: {
         message_id: messageId,
@@ -44,11 +71,12 @@ export async function receberWebhook(req: Request, res: Response) {
       }
     });
 
-    // 2. Emitir para frontend via Socket.IO
+    // 3. Emitir para frontend via Socket.IO
     emitirParaTodos('nova-mensagem', {
       ...mensagemSalva,
       direction: 'incoming',
-      senderName: nome
+      senderName: nome,
+      clientId: cliente.client_id
     });
 
     console.log('✅ Mensagem recebida e salva!');
