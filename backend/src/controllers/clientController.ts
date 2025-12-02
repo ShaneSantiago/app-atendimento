@@ -5,14 +5,55 @@
 import { Request, Response } from 'express';
 import prisma from '../config/database';
 
-// Listar todos os clientes
+// Listar todos os clientes (com paginação opcional)
 export async function listarClientes(req: Request, res: Response) {
   try {
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 0; // 0 = sem limite (retorna todos)
+    
+    // Conta o total de clientes
+    const total = await prisma.client.count();
+    
+    // Se limit for 0 ou não informado, retorna todos (comportamento original)
+    if (limit === 0) {
+      const clientes = await prisma.client.findMany({
+        orderBy: { createdAt: 'desc' }
+      });
+      
+      return res.json({
+        data: clientes,
+        pagination: {
+          total,
+          totalPages: 1,
+          currentPage: 1,
+          limit: total,
+          hasNext: false,
+          hasPrev: false
+        }
+      });
+    }
+    
+    // Calcula offset para paginação
+    const skip = (page - 1) * limit;
+    const totalPages = Math.ceil(total / limit);
+    
     const clientes = await prisma.client.findMany({
-      orderBy: { createdAt: 'desc' }
+      orderBy: { createdAt: 'desc' },
+      skip,
+      take: limit
     });
     
-    res.json(clientes);
+    res.json({
+      data: clientes,
+      pagination: {
+        total,
+        totalPages,
+        currentPage: page,
+        limit,
+        hasNext: page < totalPages,
+        hasPrev: page > 1
+      }
+    });
   } catch (error) {
     console.error('❌ Erro ao buscar clientes:', error);
     res.status(500).json({ error: 'Erro ao buscar clientes' });
