@@ -101,17 +101,19 @@ export async function receberWebhook(req: Request, res: Response) {
 
 function extrairTelefone(msg: any, dados: any): string | null {
   const possiveisTelefones = [
+    // Prioridade: chat.wa_chatid (formato UAZAPI)
+    dados.chat?.wa_chatid,
+    msg.chatid,
     dados.phone,
     msg.phone,
-    msg.sender?.replace('@s.whatsapp.net', ''),
-    msg.sender_pn?.replace('@s.whatsapp.net', ''),
-    msg.chatid?.replace('@s.whatsapp.net', ''),
-    msg.from?.replace('@s.whatsapp.net', ''),
-    dados.chat?.wa_chatid?.replace('@s.whatsapp.net', '')
+    msg.sender,
+    msg.sender_pn,
+    msg.from,
   ];
 
   for (const tel of possiveisTelefones) {
     if (typeof tel === 'string' && tel.trim()) {
+      // Remove @s.whatsapp.net se existir
       return tel.replace('@s.whatsapp.net', '');
     }
   }
