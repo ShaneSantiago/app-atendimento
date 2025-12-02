@@ -4,6 +4,7 @@
 
 import { Request, Response } from 'express';
 import prisma from '../config/database';
+import { Client } from '@prisma/client';
 
 // Listar todos os clientes (com paginação opcional)
 export async function listarClientes(req: Request, res: Response) {
@@ -141,7 +142,7 @@ export async function listarConversas(req: Request, res: Response) {
 
     // Monta lista de conversas
     const conversas = Array.from(conversasMap.values()).map(conv => {
-      const cliente = clientes.find(c => c.phone === conv.phone);
+      const cliente = clientes.find((c: Client) => c.phone === conv.phone);
       return {
         client_id: cliente?.client_id || conv.phone,
         phone: conv.phone,
