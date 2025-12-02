@@ -25,15 +25,14 @@ model Client {
   @@map("clients")
 }
 
-/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
 model Message {
+  id           Int     @id @default(autoincrement())
   message_id   String? @db.VarChar(255)
   sender_id    String? @db.VarChar(255)
   message_text String?
   timestamp    String? @default(dbgenerated("CURRENT_TIMESTAMP"))
 
   @@map("messages")
-  @@ignore
 }
 
 model messages_staff {
