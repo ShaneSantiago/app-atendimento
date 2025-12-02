@@ -41,6 +41,8 @@ export async function receberWebhook(req: Request, res: Response) {
       where: { phone: telefone }
     });
 
+    let isNovoCliente = false;
+
     if (!cliente) {
       console.log('👤 Criando novo cliente...');
       cliente = await prisma.client.create({
@@ -51,16 +53,23 @@ export async function receberWebhook(req: Request, res: Response) {
           notific: 1
         }
       });
+      isNovoCliente = true;
       console.log('✅ Cliente criado:', cliente.client_id);
+      
+      // Emitir evento de novo cliente
+      emitirParaTodos('novo-cliente', cliente);
     } else {
       // Incrementar contador de notificações
-      await prisma.client.update({
+      cliente = await prisma.client.update({
         where: { client_id: cliente.client_id },
         data: { 
           notific: { increment: 1 },
           name: nome || cliente.name // Atualiza nome se vier
         }
       });
+      
+      // Emitir evento de cliente atualizado
+      emitirParaTodos('cliente-atualizado', cliente);
     }
 
     // Extrair o número do bot (owner) da resposta
