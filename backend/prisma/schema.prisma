@@ -27,7 +27,7 @@ model Client {
 
 model Message {
   id           Int     @id @default(autoincrement())
-  message_id   String? @db.VarChar(255)
+  recipient_id String? @db.VarChar(255)
   sender_id    String? @db.VarChar(255)
   message_text String?
   timestamp    String? @default(dbgenerated("CURRENT_TIMESTAMP"))

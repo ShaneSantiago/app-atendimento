@@ -63,11 +63,16 @@ export async function receberWebhook(req: Request, res: Response) {
       });
     }
 
+    // Extrair o número do bot (owner) da resposta
+    const botNumber = msg.owner || dados.owner || process.env.BOT_NUMBER;
+
     // 2. Salvar mensagem no banco de dados
+    // sender_id = quem enviou (cliente)
+    // recipient_id = quem recebeu (bot)
     const mensagemSalva = await prisma.message.create({
       data: {
-        message_id: messageId,
         sender_id: telefone,
+        recipient_id: botNumber,
         message_text: texto
       }
     });

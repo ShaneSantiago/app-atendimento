@@ -21,7 +21,7 @@ export async function listarMensagens(req: Request, res: Response) {
   }
 }
 
-// Buscar mensagens por telefone
+// Buscar mensagens por telefone (conversa completa)
 export async function buscarMensagensPorTelefone(req: Request, res: Response) {
   try {
     const { telefone } = req.params;
@@ -29,19 +29,32 @@ export async function buscarMensagensPorTelefone(req: Request, res: Response) {
     // Normaliza o telefone removendo caracteres não numéricos
     const telefoneNormalizado = telefone.replace(/\D/g, '');
     
-    // Busca mensagens que contenham o telefone (flexível)
+    // Busca mensagens onde o telefone é sender (cliente enviou) OU recipient (cliente recebeu)
     const mensagens = await prisma.message.findMany({
       where: {
         OR: [
+          // Cliente enviou (sender_id = cliente)
           { sender_id: telefone },
           { sender_id: telefoneNormalizado },
           { sender_id: { contains: telefoneNormalizado } },
+          // Cliente recebeu (recipient_id = cliente)
+          { recipient_id: telefone },
+          { recipient_id: telefoneNormalizado },
+          { recipient_id: { contains: telefoneNormalizado } },
         ]
       },
-      orderBy: { id: 'asc' }
+      orderBy: { timestamp: 'asc' }
     });
 
-    res.json(mensagens);
+    // Adiciona campo direction para facilitar no frontend
+    const mensagensComDirection = mensagens.map(msg => ({
+      ...msg,
+      direction: msg.recipient_id === telefone || msg.recipient_id === telefoneNormalizado || msg.recipient_id?.includes(telefoneNormalizado) 
+        ? 'outgoing'  // bot enviou para cliente
+        : 'incoming'  // cliente enviou para bot
+    }));
+
+    res.json(mensagensComDirection);
   } catch (error) {
     console.error('❌ Erro ao buscar mensagens:', error);
     res.status(500).json({ error: 'Erro ao buscar mensagens' });
@@ -70,10 +83,16 @@ export async function enviarMensagem(req: Request, res: Response) {
       });
     }
 
+    // Extrair o número do bot (owner) da resposta
+    const botNumber = respostaWhatsApp.data?.owner || respostaWhatsApp.data?.sender?.replace('@s.whatsapp.net', '') || process.env.BOT_NUMBER;
+
     // 2. Salvar no banco de dados
+    // sender_id = quem enviou (bot)
+    // recipient_id = quem recebeu (cliente)
     const mensagemSalva = await prisma.message.create({
       data: {
-        sender_id: phone,
+        sender_id: botNumber,
+        recipient_id: phone,
         message_text: message
       }
     });
