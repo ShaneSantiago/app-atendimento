@@ -19,7 +19,8 @@
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
     "express": "^5.1.0",
-    "prisma": "^7.0.1"
+    "prisma": "^7.0.1",
+    "socket.io": "^4.7.5"
   },
   "devDependencies": {
     "@types/cors": "^2.8.19",

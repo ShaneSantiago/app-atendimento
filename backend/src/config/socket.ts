@@ -2,13 +2,13 @@
 // 🔌 CONFIGURAÇÃO DO SOCKET.IO
 // ============================================
 
-import { Server } from 'socket.io';
+import { Server, Socket } from 'socket.io';
 import { Server as HttpServer } from 'http';
 
 let io: Server;
 
 // Inicializa o Socket.IO
-export function initSocket(httpServer: HttpServer) {
+export function initSocket(httpServer: HttpServer): Server {
   io = new Server(httpServer, {
     cors: {
       origin: '*',
@@ -16,7 +16,7 @@ export function initSocket(httpServer: HttpServer) {
     }
   });
 
-  io.on('connection', (socket) => {
+  io.on('connection', (socket: Socket) => {
     console.log('🔌 Cliente conectado:', socket.id);
     
     socket.on('disconnect', () => {
