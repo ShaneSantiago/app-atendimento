@@ -100,23 +100,47 @@ export async function receberWebhook(req: Request, res: Response) {
 // ============================================
 
 function extrairTelefone(msg: any, dados: any): string | null {
-  return dados.phone ||
-         msg.phone ||
-         msg.sender_pn?.replace('@s.whatsapp.net', '') || 
-         msg.chatid?.replace('@s.whatsapp.net', '') ||
-         dados.chat?.wa_chatid?.replace('@s.whatsapp.net', '') ||
-         msg.from?.replace('@s.whatsapp.net', '') ||
-         null;
+  const possiveisTelefones = [
+    dados.phone,
+    msg.phone,
+    msg.sender?.replace('@s.whatsapp.net', ''),
+    msg.sender_pn?.replace('@s.whatsapp.net', ''),
+    msg.chatid?.replace('@s.whatsapp.net', ''),
+    msg.from?.replace('@s.whatsapp.net', ''),
+    dados.chat?.wa_chatid?.replace('@s.whatsapp.net', '')
+  ];
+
+  for (const tel of possiveisTelefones) {
+    if (typeof tel === 'string' && tel.trim()) {
+      return tel.replace('@s.whatsapp.net', '');
+    }
+  }
+
+  return null;
 }
 
 function extrairTexto(msg: any, dados: any): string | null {
-  return dados.message ||
-         msg.message ||
-         msg.text || 
-         msg.content || 
-         msg.body ||
-         dados.chat?.wa_lastMessageTextVote ||
-         null;
+  // Tenta extrair texto de várias formas possíveis
+  const possiveisTextos = [
+    msg.text,
+    msg.body,
+    msg.content?.text,  // content pode ser objeto { text: "..." }
+    msg.content,
+    msg.message?.text,
+    msg.message,
+    dados.message?.text,
+    dados.message,
+    dados.text,
+    dados.chat?.wa_lastMessageTextVote
+  ];
+
+  for (const texto of possiveisTextos) {
+    if (typeof texto === 'string' && texto.trim()) {
+      return texto;
+    }
+  }
+
+  return null;
 }
 
 function extrairNome(msg: any, dados: any): string | null {
