@@ -30,7 +30,11 @@ export function initSocket(httpServer: HttpServer): Server {
 // Envia mensagem para todos os clientes conectados
 export function emitirParaTodos(evento: string, dados: any) {
   if (io) {
+    console.log(`🔌 Emitindo evento "${evento}" para ${io.engine.clientsCount} cliente(s)`);
+    console.log('📤 Dados:', JSON.stringify(dados, null, 2));
     io.emit(evento, dados);
+  } else {
+    console.log('⚠️ Socket.IO não inicializado!');
   }
 }
 

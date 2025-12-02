@@ -13,6 +13,7 @@ export async function receberWebhook(req: Request, res: Response) {
     const msg = dados.message || dados;
 
     console.log('📥 Webhook recebido da UAZAPI');
+    console.log('📦 Body completo:', JSON.stringify(dados, null, 2));
 
     // Ignorar mensagens que EU enviei
     if (msg.fromMe) {
@@ -94,21 +95,30 @@ export async function receberWebhook(req: Request, res: Response) {
 // ============================================
 
 function extrairTelefone(msg: any, dados: any): string | null {
-  return msg.sender_pn?.replace('@s.whatsapp.net', '') || 
+  return dados.phone ||
+         msg.phone ||
+         msg.sender_pn?.replace('@s.whatsapp.net', '') || 
          msg.chatid?.replace('@s.whatsapp.net', '') ||
          dados.chat?.wa_chatid?.replace('@s.whatsapp.net', '') ||
+         msg.from?.replace('@s.whatsapp.net', '') ||
          null;
 }
 
 function extrairTexto(msg: any, dados: any): string | null {
-  return msg.text || 
+  return dados.message ||
+         msg.message ||
+         msg.text || 
          msg.content || 
+         msg.body ||
          dados.chat?.wa_lastMessageTextVote ||
          null;
 }
 
 function extrairNome(msg: any, dados: any): string | null {
-  return msg.senderName || 
+  return dados.name ||
+         msg.name ||
+         msg.senderName || 
+         msg.pushName ||
          dados.chat?.name ||
          null;
 }
